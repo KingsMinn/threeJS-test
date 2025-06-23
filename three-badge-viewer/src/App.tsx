@@ -4,10 +4,11 @@ import { useGLTF, Environment } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 
-// 배지 컴포넌트 (스프링 애니메이션 포함)
+// 배지 컴포넌트 (스프링 애니메이션 + 마우스 인터랙션)
 function Badge({ badgeFile }: { badgeFile: string }) {
   const { scene } = useGLTF(badgeFile);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   
   // 스프링 애니메이션 - 180도에서 0도로 회전 (Y축)
   const { rotationY } = useSpring({
@@ -24,12 +25,54 @@ function Badge({ badgeFile }: { badgeFile: string }) {
       }
     }
   });
+
+  // 마우스 인터랙션 회전 (애니메이션 완료 후에만)
+  const { mouseRotationZ, mouseRotationY } = useSpring({
+    mouseRotationZ: hasAnimated ? mousePosition.y * 0.15 : 0, // 상하 기울임 (Z축)
+    mouseRotationY: hasAnimated ? mousePosition.x * 0.2 : 0, // 좌우 회전 (Y축)
+    config: {
+      tension: 100,
+      friction: 25,
+      mass: 0.5
+    }
+  });
   
   // 컴포넌트 마운트 시 애니메이션 트리거
   useEffect(() => {
     const timer = setTimeout(() => setHasAnimated(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // 마우스 이벤트 리스너
+  useEffect(() => {
+    if (!hasAnimated) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const canvas = event.target as HTMLCanvasElement;
+      if (!canvas || canvas.tagName !== 'CANVAS') return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1; // -1 to 1
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1; // -1 to 1
+      
+      setMousePosition({ x, y });
+    };
+
+    const handleMouseLeave = () => {
+      setMousePosition({ x: 0, y: 0 }); // 원래 위치로 복귀
+    };
+
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseleave', handleMouseLeave);
+      
+      return () => {
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseleave', handleMouseLeave);
+      };
+    }
+  }, [hasAnimated]);
   
   // 그림자 설정 및 채도 향상
 useEffect(() => {
@@ -70,7 +113,8 @@ useEffect(() => {
     <animated.group
       scale={[0.5, 0.5, 0.5]} 
       position={[0, 0, 0]}
-      rotation-y={rotationY}
+      rotation-z={mouseRotationZ}
+      rotation-y={rotationY.to(baseRotation => baseRotation + mouseRotationY.get())}
     >
       <primitive 
         object={scene} 
