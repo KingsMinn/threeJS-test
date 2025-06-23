@@ -3,7 +3,6 @@ import { Canvas } from '@react-three/fiber';
 import { useGLTF, Environment } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
-import './App.css';
 
 // 배지 컴포넌트 (스프링 애니메이션 포함)
 function Badge({ badgeFile }: { badgeFile: string }) {
@@ -198,13 +197,6 @@ function App() {
     { name: 'Wellbeing', file: '/badge-wellbeing.glb' }
   ];
 
-  const nextBadge = () => {
-    setCurrentBadge((prev) => (prev + 1) % badges.length);
-  };
-
-  const prevBadge = () => {
-    setCurrentBadge((prev) => (prev - 1 + badges.length) % badges.length);
-  };
 
   return (
     <div className="App" style={{ width: '100vw', height: '100vh', background: '#ffffff' }}>
